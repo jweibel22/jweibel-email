@@ -4,13 +4,12 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-
+var jackrabbit = require('jackrabbit');
+var log = require('logfmt');
+var config = require('./config')
 
 
 var app = express();
-
-
-
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -24,7 +23,27 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-require('./routes/index')(app);
+var rabbit = jackrabbit(config.rabbitUrl)
+    .on('connected', function() {
+        log.log({ type: 'info', msg: 'connected', service: 'rabbitmq' });
+        var exchange = rabbit.default();
+        exchange.queue({name: config.queueName, durable: true, prefetch: 5 });
+        mapRoutes(app, exchange);
+    })
+    .on('error', function(err) {
+        log.log({ type: 'error', msg: err, service: 'rabbitmq' });
+        //TODO: what to do?
+    })
+    .on('disconnected', function() {
+        log.log({ type: 'error', msg: 'disconnected', service: 'rabbitmq' });
+        //TODO: what to do?
+    });
+
+//queue.ignore(queueName);
+
+function mapRoutes(app, exchange) {
+
+require('./routes/index')(app, exchange);
 
 app.use(function(req, res, next) {
     var err = new Error('Not Found');
@@ -55,5 +74,6 @@ app.use(function(err, req, res, next) {
         error: {}
     });
 });
+};
 
 module.exports = app;
