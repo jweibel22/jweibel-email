@@ -6,17 +6,11 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var jackrabbit = require('jackrabbit');
 var log = require('logfmt');
-var config = require('./config')
-
+var config = require('./../config');
+var util = require('util');
 
 var app = express();
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-
-// uncomment after placing your favicon in /public
-//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -39,8 +33,6 @@ var rabbit = jackrabbit(config.rabbitUrl)
         //TODO: what to do?
     });
 
-//queue.ignore(queueName);
-
 function mapRoutes(app, exchange) {
 
 require('./routes/index')(app, exchange);
@@ -58,10 +50,13 @@ app.use(function(req, res, next) {
 if (app.get('env') === 'development') {
     app.use(function(err, req, res, next) {
         res.status(err.status || 500);
-        res.render('error', {
-            message: err.message,
-            error: err
-        });
+
+        if (req.method == 'GET') {
+            res.send(util.format('<html> <body><h1>%s</h1><h2>%s</h2><pre>%s</pre></body></html>',  err.message, err.status, err.stack));
+        }
+        else {
+        }
+        res.send(JSON.stringify(err, ["message", "stack", "status"]));
     });
 }
 
@@ -69,10 +64,13 @@ if (app.get('env') === 'development') {
 // no stacktraces leaked to user
 app.use(function(err, req, res, next) {
     res.status(err.status || 500);
-    res.render('error', {
-        message: err.message,
-        error: {}
-    });
+
+    if (req.method == 'GET') {
+        res.send(util.format('<html> <body><h1>%s</h1></body></html>',  err.message));
+    }
+    else {
+        res.send(JSON.stringify(err, ["message"]));
+    }
 });
 };
 

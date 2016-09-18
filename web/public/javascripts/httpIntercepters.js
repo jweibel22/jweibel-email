@@ -4,12 +4,12 @@ angular.module('jweibel-email').config([
             return {
                 'response': function(response) {
                     if (response.data.Success == false) {
-                        $rootScope.$broadcast("HttpWarning", "Warning", rejection.data.Message ? rejection.data.Message : rejection.data.statusText, response);
+                        $rootScope.$broadcast("HttpWarning", "Warning", response.data.message);
                     }
                     return response;
                 },
                 'responseError': function(rejection) {
-                    $rootScope.$broadcast("HttpError", "Error", rejection.data.Message ? rejection.data.Message : rejection.data.statusText, rejection);
+                    $rootScope.$broadcast("HttpError", "Error", rejection.data.message, rejection.status);
                     return $q.reject(rejection);
                 }
             };
