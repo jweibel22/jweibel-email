@@ -4,6 +4,14 @@ var validation = require('../../validation');
 
 module.exports = function(app, exchange) {
 
+    function sleep(millis)
+    {
+        var date = new Date();
+        var curDate = null;
+        do { curDate = new Date(); }
+        while(curDate-date < millis);
+    }
+
     console.log("configuring routes")
 
 /*
@@ -14,6 +22,8 @@ module.exports = function(app, exchange) {
 
     app.post('/send', function (req, res, next) {
         console.log('email received: ' + req.body.subject);
+
+        sleep(2000); //make sure people see the lovely spinner
 
         if (!validation.validateEmailAddress(req.body.from) || !validation.validateEmailAddress(req.body.to)) {
             res.status(400).send({message: "Invalid request, email adresses were not legal" });
