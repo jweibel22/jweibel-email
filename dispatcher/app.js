@@ -6,10 +6,11 @@ var request = require('request');
 var uuid = require('node-uuid');
 var EmailProviderProxy = require('./emailProviderProxy');
 var sendGrid = require('./emailProviders/sendGrid');
+var mailGun = require('./emailProviders/mailGun');
 
 logger.log({ type: 'info', msg: 'worker starting up', service: 'rabbitmq' });
 
-var dispatcher = new EmailProviderProxy([sendGrid]);
+var dispatcher = new EmailProviderProxy([sendGrid, mailGun]);
 
 var maxNumberOfParallelInFlightEmails = 5; //TODO: make this configurable or deduct it from the properties of the email providers?
 
@@ -33,16 +34,16 @@ var rabbit = jackrabbit(config.rabbitUrl)
 var onMessage = function(msg, ack, nack) {
 
     try {
-        logger.log({ type: 'info', msg: 'handling email', queue: config.queueName, id: msg.id });
+        logger.log({ type: 'debug', msg: 'handling email', queue: config.queueName, id: msg.id });
         dispatcher.send(msg.email).then(onSuccess, onError);
     }
     catch(e) {
-        logger.log({ type: 'info', msg: e, status: 'failure', id: msg.id });
+        logger.log({ type: 'debug', msg: e, status: 'failure', id: msg.id });
         nack();
     }
 
     function onSuccess() {
-        logger.log({ type: 'info', msg: 'handler completed', status: 'success', id: msg.id});
+        logger.log({ type: 'debug', msg: 'handler completed', status: 'success', id: msg.id});
         ack();
     }
 
@@ -52,7 +53,7 @@ var onMessage = function(msg, ack, nack) {
             ack(); //we need to ack this email, we're simply unable to dispatch it :-(
         }
         else {
-            logger.log({ type: 'info', msg: 'handler completed', status: 'failure', id: msg.id });
+            logger.log({ type: 'error', msg: 'handler completed', status: 'failure', id: msg.id });
             nack();  //reject so that the email is returned to the rabbitmq queue
             //TODO: we need to pause consuming messages until the email providers are back online
         }

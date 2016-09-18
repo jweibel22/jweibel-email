@@ -41,9 +41,8 @@ function EmailProviderProxy(providers) {
     }
 
     function checkConnections() {
-
-        for(var i=0; i<self.providers.length; i++) {
-            var provider = self.providers[i];
+        for(var i=0; i<providers.length; i++) {
+            var provider = providers[i];
 
             if (!provider.available) {
                 provider.dispatcher.ping().then(function() { provider.setAvailable(true); }, function() { provider.setAvailable(false); })

@@ -12,13 +12,12 @@ module.exports = {
             body: {},
             expectedStatus: 401
         },
-        sendEmailRequest: {
+        sendEmailRequest: function (email) {
+            return {
             url: 'https://api.sendgrid.com/v3/mail/send',
             headers: {'Authorization': "Bearer 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"},
-        },
-        emailToDto: function (email) {
-
-            var dto = {
+            time: true,
+            json : {
                 personalizations: [
                     {
                         to: [
@@ -38,10 +37,8 @@ module.exports = {
                         value: email.body
                     }
                 ]
-            };
-
-            return dto;
-        }
+            }
+        }}
     })
 };
 

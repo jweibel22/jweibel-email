@@ -64,28 +64,21 @@ HttpEmailDispatcher.prototype.send = function (email) {
 
     return new Promise(function (fulfill, reject) {
 
-        var dto = self.provider.emailToDto(email);
-
-        request.post({
-                json: dto,
-                url: self.provider.sendEmailRequest.url,
-                time : true,
-                headers: self.provider.sendEmailRequest.headers
-            },
+        request.post(self.provider.sendEmailRequest(email),
             function (error, response, body) {
 
                 if (!response) {
                     reject(new ServiceErrors.ServiceUnavailable(error));
                 }
 
-                if (response.statusCode == 202) {
+                if (response.statusCode == 202 || response.statusCode == 200) {
                     fulfill({
                         elapsedTime: response.elapsedTime
                     });
                 }
                 else {
                     LogResponse(self.provider, response, error);
-                    reject(MapServiceError(reponse, error));
+                    reject(MapServiceError(response, error));
                 }
             }
         );
