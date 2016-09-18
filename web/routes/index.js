@@ -31,10 +31,8 @@ module.exports = function(app, exchange) {
 
         //TODO: validate body. (size etc.)
 
-        //throw new Error("asaasasd");
-
         var id = uuid.v1();
-        //exchange.publish({ id: id, email: req.body }, { key: 'emails' });
+        exchange.publish({ id: id, email: req.body }, { key: 'emails' });
 
 
         res.status(200).end();

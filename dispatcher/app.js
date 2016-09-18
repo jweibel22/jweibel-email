@@ -6,27 +6,12 @@ var request = require('request');
 var uuid = require('node-uuid');
 var EmailProviderProxy = require('./emailProviderProxy');
 var sendGrid = require('./emailProviders/sendGrid');
-var EmailDispatcherMock = require('../tests/mocks/emailDispatcherMock');
 
 logger.log({ type: 'info', msg: 'worker starting up', service: 'rabbitmq' });
-
-var provider = {
-    name: "AvailableProvider",
-    maxRatePerSecond: 10,
-    priority: 0,
-    dispatcher: new EmailDispatcherMock(function (fulfill, reject) { fulfill({ elapsedTime: 0}); })
-}
 
 var dispatcher = new EmailProviderProxy([sendGrid]);
 
 var maxNumberOfParallelInFlightEmails = 5; //TODO: make this configurable or deduct it from the properties of the email providers?
-
-var email = {
-    from: "jwe@danskecommodities.com",
-    to: "jweibel22@gmail.com",
-    subject: "Tester",
-    body: "En test mere"
-}
 
 var rabbit = jackrabbit(config.rabbitUrl)
     .on('connected', function() {
@@ -35,11 +20,6 @@ var rabbit = jackrabbit(config.rabbitUrl)
         var exchange = rabbit.default();
         var queue = exchange.queue({name: config.queueName, durable: true, prefetch: maxNumberOfParallelInFlightEmails });
         queue.consume(onMessage, { noAck: false });
-
-//        for (var i=0;i<1;i++) {
-//            exchange.publish({ id: uuid.v4(), email: email}, {key: 'emails' });
-//        }
-
     })
     .on('error', function(err) {
         logger.log({ type: 'error', msg: err, service: 'rabbitmq' });
