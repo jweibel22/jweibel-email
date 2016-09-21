@@ -37,22 +37,25 @@ var email = {};
 describe('Availability', function() {
     it('should succeed when provider is available', function() {
         var uut = new EmailProviderProxy([availableProvider]);
+        uut.initialize();
         return expect(uut.send(email)).to.eventually.be.fulfilled;
     });
     it('should succeed if a low priority unavailable provider exists', function() {
         unavailableProvider.priority = 1;
         availableProvider.priority = 0;
         var uut = new EmailProviderProxy([availableProvider, unavailableProvider]);
+        uut.initialize();
         return expect(uut.send(email)).to.eventually.be.fulfilled;
     });
     it('should fail when provider is unavailable', function() {
         var uut = new EmailProviderProxy([unavailableProvider]);
+        uut.initialize();
         return expect(uut.send(email)).to.eventually.be.rejectedWith(ServiceErrors.ServiceUnavailable);
     });
     it('should fail when no providers exist', function() {
         var uut = new EmailProviderProxy([]);
-        var fn = function () { uut.send(email); }
-        expect(fn).to.throw(Error)
+        uut.initialize();
+        return expect(uut.send(email)).to.eventually.be.rejectedWith(ServiceErrors.ServiceUnavailable);
     });
 });
 
@@ -61,12 +64,14 @@ describe('Fail-over', function() {
         unavailableProvider.priority = 0;
         availableProvider.priority = 1;
         var uut = new EmailProviderProxy([availableProvider, unavailableProvider]);
+        uut.initialize();
         return expect(uut.send(email)).to.eventually.be.rejectedWith(ServiceErrors.ServiceUnavailable);
     });
     it('second call succeeds on fail-over', function() {
         unavailableProvider.priority = 0;
         availableProvider.priority = 1;
         var uut = new EmailProviderProxy([availableProvider, unavailableProvider]);
+        uut.initialize();
         var firstCall = uut.send(email);
         var secondCall = firstCall.then(function() {},  function(error) { return uut.send(email); });
         return Promise.all([firstCall.should.eventually.be.rejected, secondCall.should.eventually.be.fulfilled]);
@@ -75,6 +80,7 @@ describe('Fail-over', function() {
         badRequestProvider.priority = 0;
         availableProvider.priority = 1;
         var uut = new EmailProviderProxy([badRequestProvider, availableProvider]);
+        uut.initialize();
         var firstCall = uut.send(email);
         var secondCall = firstCall.then(function() {},  function(error) { return uut.send(email); });
         return Promise.all([firstCall.should.eventually.be.rejectedWith(ServiceErrors.BadRequest),
@@ -96,6 +102,7 @@ describe('Fail-over', function() {
         var slowDispatch = sinon.spy(slow.dispatcher, 'send');
         var fastDispatch = sinon.spy(fast.dispatcher, 'send');
         var uut = new EmailProviderProxy([slow, fast]);
+        uut.initialize();
         return expect(uut.send(email)
             .then(function() { return uut.send(email);})
             .then(function() {
@@ -130,6 +137,7 @@ describe('Prioritization', function() {
         var highDispatch = sinon.spy(high.dispatcher, 'send');
         var lowDispatch = sinon.spy(low.dispatcher, 'send');
         var uut = new EmailProviderProxy([low, high]);
+        uut.initialize();
         return expect(uut.send(email)
             .then(function() {
                 sinon.assert.calledOnce(highDispatch);
@@ -153,6 +161,7 @@ describe('Rate limit', function() {
         };
 
         var uut = new EmailProviderProxy([provider]);
+        uut.initialize();
 
         var start = process.hrtime();
 

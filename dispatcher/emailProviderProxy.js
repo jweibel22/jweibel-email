@@ -34,7 +34,7 @@ EmailProviderProxy.prototype.initialize = function() {
             this.available = available;
 
             if (!available) {
-                var numberOfAvailable = this.providers.filter(function (p) { return p.available; }).length;
+                var numberOfAvailable = self.providers.filter(function (p) { return p.available; }).length;
 
                 if (numberOfAvailable <= errorTolerance) {
                     logger.log({ type: 'error', msg: 'less than ' + (errorTolerance+1) + ' providers are available'});
@@ -97,7 +97,7 @@ EmailProviderProxy.prototype.send = function(email) {
             .filter(function (p) { return p.available; });
 
         if (availableProviders.length == 0) {
-            throw new Error("No available providers");
+            return null;
         }
         else {
             return availableProviders[0]; //no load balancing supported, just find the first available
@@ -105,11 +105,17 @@ EmailProviderProxy.prototype.send = function(email) {
     };
 
 
-    var provider = getEmailProvider(); //TODO: throw exception or reject promise??
 
     return new Promise(function (fulfill, reject) {
 
         function sendWhenReady() {
+
+            var provider = getEmailProvider();
+
+            if (provider == null) {
+                reject(new ServiceErrors.ServiceUnavailable("No providers are available"));
+                return;
+            }
 
             if (provider.tokens <= 0) {
                 setTimeout(sendWhenReady, 50);
