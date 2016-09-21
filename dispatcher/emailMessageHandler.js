@@ -1,3 +1,4 @@
+var logger = require('logfmt');
 
 module.exports = function(dispatcher) {
 
