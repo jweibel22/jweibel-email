@@ -27,8 +27,11 @@ EmailProviderProxy.prototype.initialize = function() {
 
         //TODO: adding new properties/methods to external objects, good idea, no???
         provider.setAvailable = function(available) {
+
+            if (this.available != available) {
+                logger.log({type: 'info', msg: 'service ' + this.name + ' is ' + (available ? "Up" : "Down")}); //so we can later gather statistics from the log
+            }
             this.available = available;
-            logger.log({ type: 'info', msg: 'service ' + this.name + ' is ' + (available ? "Up" : "Down")}); //so we can later gather statistics from the log
 
             if (!available) {
                 var numberOfAvailable = this.providers.filter(function (p) { return p.available; }).length;
@@ -57,7 +60,7 @@ EmailProviderProxy.prototype.initialize = function() {
             self.eventEmitter.emit('disconnected');
         }
 
-        this.available = isAvailable;
+        self.available = isAvailable;
     }
 
     function setTokens() {
