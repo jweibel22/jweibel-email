@@ -5,10 +5,10 @@ angular.module('jweibel-email')
             $scope.isLoading = false;
 
             $scope.email = {
-                from: 'jwe@danskecommodities',
-                to: 'jweibel22@gmail.com',
-                subject: 'Test',
-                body: 'Endnu en test'
+                from: '',
+                to: '',
+                subject: '',
+                body: ''
             };
 
             $scope.send = function() {

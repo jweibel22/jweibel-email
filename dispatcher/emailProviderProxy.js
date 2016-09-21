@@ -1,5 +1,6 @@
 var ServiceErrors = require('./serviceErrors')
 var logger = require('logfmt');
+var events = require('events');
 
 var reasonableRequestInFlightDuration = 30000;
 var warnTolerance = 1;
@@ -7,22 +8,30 @@ var errorTolerance = 0;
 
 //delegates email dispatching to a set of providers. Handles fail-over automatically and applies the circuit breaker pattern
 function EmailProviderProxy(providers) {
-
-    var checkConnectionsInterval = 6*1000;
-    var self = this;
     this.providers = providers;
+    this.available = false;
+    this.eventEmitter = new events.EventEmitter();
+}
 
-    for(var i=0;i<providers.length; i++) {
-        var provider = providers[i];
+EmailProviderProxy.prototype.on = function(event, listener) {
+    return this.eventEmitter.on(event, listener);
+}
 
-        provider.available = true; //TODO: adding new properties/methods to external objects, good idea, no???
+EmailProviderProxy.prototype.initialize = function() {
 
+    var self = this;
+    var checkConnectionsInterval = 6*1000;
+
+    for(var i=0;i<this.providers.length; i++) {
+        var provider = this.providers[i];
+
+        //TODO: adding new properties/methods to external objects, good idea, no???
         provider.setAvailable = function(available) {
             this.available = available;
             logger.log({ type: 'info', msg: 'service ' + this.name + ' is ' + (available ? "Up" : "Down")}); //so we can later gather statistics from the log
 
             if (!available) {
-                var numberOfAvailable = self.providers.filter(function (p) { return p.available; }).length;
+                var numberOfAvailable = this.providers.filter(function (p) { return p.available; }).length;
 
                 if (numberOfAvailable <= errorTolerance) {
                     logger.log({ type: 'error', msg: 'less than ' + (errorTolerance+1) + ' providers are available'});
@@ -31,18 +40,35 @@ function EmailProviderProxy(providers) {
                     logger.log({ type: 'warn', msg: 'less than ' + (warnTolerance+1) + ' providers are available'});
                 }
             }
+
+            refreshAvailable();
         }
+
+        provider.setAvailable(true);
+    }
+
+    function refreshAvailable() {
+        var isAvailable = self.providers.filter(function (p) { return p.available; }).length > 0;
+
+        if (!self.available && isAvailable) {
+            self.eventEmitter.emit('connected');
+        }
+        else if (self.available && !isAvailable) {
+            self.eventEmitter.emit('disconnected');
+        }
+
+        this.available = isAvailable;
     }
 
     function setTokens() {
-        for(var i=0;i<providers.length; i++) {
-            providers[i].tokens = providers[i].maxRatePerSecond/2; //ensure that at any given moment no more than maxRatePerSecond requests has been issued during the last 1000 ms
+        for(var i=0;i<self.providers.length; i++) {
+            self.providers[i].tokens = self.providers[i].maxRatePerSecond/2; //ensure that at any given moment no more than maxRatePerSecond requests has been issued during the last 1000 ms
         }
     }
 
     function checkConnections() {
-        for(var i=0; i<providers.length; i++) {
-            var provider = providers[i];
+        for(var i=0; i<self.providers.length; i++) {
+            var provider = self.providers[i];
 
             if (!provider.available) {
                 provider.dispatcher.ping().then(function() { provider.setAvailable(true); }, function() { provider.setAvailable(false); })
@@ -68,7 +94,7 @@ EmailProviderProxy.prototype.send = function(email) {
             .filter(function (p) { return p.available; });
 
         if (availableProviders.length == 0) {
-            throw Error("No available providers");
+            throw new Error("No available providers");
         }
         else {
             return availableProviders[0]; //no load balancing supported, just find the first available

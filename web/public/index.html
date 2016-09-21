@@ -10,10 +10,8 @@
    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.19/angular.min.js"></script>
    <script src="https://angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.10.0.js"></script>
-   <!--script src="/socket.io/socket.io.js"></script-->
-   <script src="/javascripts/angularApp.js"></script>
-   <script src="/javascripts/bootstrap.min.js"></script>
 
+   <script src="/javascripts/angularApp.js"></script>
 
    <link href="https://cdnjs.cloudflare.com/ajax/libs/angularjs-toaster/1.1.0/toaster.min.css" rel="stylesheet" />
    <script src="https://code.angularjs.org/1.2.0/angular-animate.min.js" ></script>
@@ -25,14 +23,6 @@
    <script src="/javascripts/controllers/home.js"></script>
 </head>
 
-
-<!--script>
-   var socket = io();
-
-   socket.on('status', function(msg){
-      $('#status').text(msg);
-   });
-</script-->
 
 <body ng-app="jweibel-email">
 
@@ -53,7 +43,7 @@
    <form ng-submit="send()">
 
    <div class="form-group">
-      <input type="text"
+      <input type="email"
              class="form-control"
              placeholder="From"
              ng-model="email.from"></input>

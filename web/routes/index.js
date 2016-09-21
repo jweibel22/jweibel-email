@@ -12,32 +12,20 @@ module.exports = function(app, exchange) {
         while(curDate-date < millis);
     }
 
-    console.log("configuring routes")
-
-/*
-    app.get('/', function (req, res, next) {
-          res.sendFile('index.html');
-    });
-*/
-
     app.post('/send', function (req, res, next) {
-        console.log('email received: ' + req.body.subject);
 
         sleep(2000); //make sure people see the lovely spinner
 
-        if (!validation.validateEmailAddress(req.body.from) || !validation.validateEmailAddress(req.body.to)) {
-            res.status(400).send({message: "Invalid request, email adresses were not legal" });
+        var validationErrors = validation.validate(req.body);
+
+        if (validationErrors.length > 0) {
+            res.status(400).send({message: validationErrors.join(". ")});
         }
-
-        //TODO: validate body. (size etc.)
-
-        var id = uuid.v1();
-        exchange.publish({ id: id, email: req.body }, { key: 'emails' });
-
-
-        res.status(200).end();
+        else {
+            //TODO: be aware, jackrabbit doesn't support publisher confirms, we should push for this feature to be added or switch to another framework..
+            exchange.publish({ id: uuid.v4(), email: req.body }, { key: 'emails' });
+            res.status(200).end();
+        }
     });
-
-
 };
 

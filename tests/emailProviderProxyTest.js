@@ -34,7 +34,7 @@ var badRequestProvider = {
 
 var email = {};
 
-describe('Testing Send', function() {
+describe('Availability', function() {
     it('should succeed when provider is available', function() {
         var uut = new EmailProviderProxy([availableProvider]);
         return expect(uut.send(email)).to.eventually.be.fulfilled;
@@ -47,13 +47,21 @@ describe('Testing Send', function() {
     });
     it('should fail when provider is unavailable', function() {
         var uut = new EmailProviderProxy([unavailableProvider]);
-        return expect(uut.send(email)).to.eventually.be.rejected;
+        return expect(uut.send(email)).to.eventually.be.rejectedWith(ServiceErrors.ServiceUnavailable);
     });
+    it('should fail when no providers exist', function() {
+        var uut = new EmailProviderProxy([]);
+        var fn = function () { uut.send(email); }
+        expect(fn).to.throw(Error)
+    });
+});
+
+describe('Fail-over', function() {
     it('first call fails on fail-over', function() {
         unavailableProvider.priority = 0;
         availableProvider.priority = 1;
         var uut = new EmailProviderProxy([availableProvider, unavailableProvider]);
-        return expect(uut.send(email)).to.eventually.be.rejected;
+        return expect(uut.send(email)).to.eventually.be.rejectedWith(ServiceErrors.ServiceUnavailable);
     });
     it('second call succeeds on fail-over', function() {
         unavailableProvider.priority = 0;
@@ -69,29 +77,8 @@ describe('Testing Send', function() {
         var uut = new EmailProviderProxy([badRequestProvider, availableProvider]);
         var firstCall = uut.send(email);
         var secondCall = firstCall.then(function() {},  function(error) { return uut.send(email); });
-        return Promise.all([firstCall.should.eventually.be.rejected, secondCall.should.eventually.be.rejected]);
-    });
-    it('providers are prioritized', function() {
-        var high = {
-            name: "HighPriority",
-            maxRatePerSecond: 10,
-            priority: 0,
-            dispatcher: new EmailDispatcherMock(function (fulfill, reject) { fulfill({ elapsedTime: 0}); })
-        };
-        var low = {
-            name: "LowPriority",
-            maxRatePerSecond: 10,
-            priority: 1,
-            dispatcher: new EmailDispatcherMock(function (fulfill, reject) { fulfill({ elapsedTime: 0}); })
-        };
-        var highDispatch = sinon.spy(high.dispatcher, 'send');
-        var lowDispatch = sinon.spy(low.dispatcher, 'send');
-        var uut = new EmailProviderProxy([low, high]);
-        return expect(uut.send(email)
-            .then(function() {
-                sinon.assert.calledOnce(highDispatch);
-                sinon.assert.notCalled(lowDispatch); }))
-            .to.eventually.be.fulfilled;
+        return Promise.all([firstCall.should.eventually.be.rejectedWith(ServiceErrors.BadRequest),
+                            secondCall.should.eventually.be.rejectedWith(ServiceErrors.BadRequest)]);
     });
     it('fail-over on slow provider', function() {
         var slow = {
@@ -117,6 +104,41 @@ describe('Testing Send', function() {
             }))
             .to.eventually.be.fulfilled;
     });
+});
+
+describe('Testing validation', function() {
+
+    //empty email
+    //missing email adresses
+    //invalid email addresses
+});
+
+describe('Prioritization', function() {
+    it('providers are prioritized', function() {
+        var high = {
+            name: "HighPriority",
+            maxRatePerSecond: 10,
+            priority: 0,
+            dispatcher: new EmailDispatcherMock(function (fulfill, reject) { fulfill({ elapsedTime: 0}); })
+        };
+        var low = {
+            name: "LowPriority",
+            maxRatePerSecond: 10,
+            priority: 1,
+            dispatcher: new EmailDispatcherMock(function (fulfill, reject) { fulfill({ elapsedTime: 0}); })
+        };
+        var highDispatch = sinon.spy(high.dispatcher, 'send');
+        var lowDispatch = sinon.spy(low.dispatcher, 'send');
+        var uut = new EmailProviderProxy([low, high]);
+        return expect(uut.send(email)
+            .then(function() {
+                sinon.assert.calledOnce(highDispatch);
+                sinon.assert.notCalled(lowDispatch); }))
+            .to.eventually.be.fulfilled;
+    });
+});
+
+describe('Rate limit', function() {
     it('rate limitting works', function() {
 
         var numIterations = 5;
@@ -133,7 +155,7 @@ describe('Testing Send', function() {
         var uut = new EmailProviderProxy([provider]);
 
         var start = process.hrtime();
-        
+
         var p = uut.send(email);
         for (var i=0; i<numIterations-1; i++) {
             p = p.then(function() { return uut.send(email); });
@@ -145,4 +167,5 @@ describe('Testing Send', function() {
         return expect(p).to.eventually.be.above(numIterations-2);
     });
 });
+
 
