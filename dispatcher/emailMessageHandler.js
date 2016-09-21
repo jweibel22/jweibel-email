@@ -6,7 +6,7 @@ module.exports = function(dispatcher) {
         onMessage: function (msg, ack, nack) {
 
             try {
-                logger.log({type: 'debug', msg: 'handling email', queue: config.queueName, id: msg.id});
+                logger.log({type: 'debug', msg: 'handling email', id: msg.id});
                 dispatcher.send(msg.email).then(onSuccess, onError);
             }
             catch (e) {
@@ -25,11 +25,14 @@ module.exports = function(dispatcher) {
                     ack(); //we need to ack this email, we're simply unable to dispatch it :-(
                     //TODO: forward these message to a poison queue for manual inspection/retry
                 }
-                else {
+                else if (error instanceof ServiceErrors.ServiceUnavailable) {
                     logger.log({type: 'error', msg: 'handler completed', status: 'failure', id: msg.id});
                     nack();  //reject so that the email is returned to the rabbitmq queue
                 }
+                else {
+                    logger.log({ type: 'error', msg: 'unhandled exception in message handler, shutting down' });
+                    process.exit();}
+                }
             }
         }
-    }
 };
