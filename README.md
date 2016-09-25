@@ -49,8 +49,8 @@ The web server and the worker communicates asynchronously over RabbitMQ.
 The introduction of a message broker between the web server and the worker has many benefits:
 
 **Scalability:**
-It decouples the two activities and enables us to scale them independently.
-Utilizing RabbitMQ simplifies the fail-over logic. By applying the circuit breaker pattern we keep track of the avilability of the providers and try to dispatch the email to an available provider (if any) and if it fails we NACK the message which means that RabbitMQ will redeliver it later.
+First of all it decouples the two activities and enables us to scale them independently.
+Second of all utilizing RabbitMQ simplifies the fail-over logic. By applying the circuit breaker pattern we keep track of the avilability of the providers and try to dispatch the email to an available provider (if any) and if it fails we NACK the message which means that RabbitMQ will redeliver it later.
 Scaling up the dispatching of emails is simply a matter of deploying multiple workers (each configured with their own email provider), they will consume from the same queue and RabbitMQ will take care of the load balancing.
 
 **Availability:**
