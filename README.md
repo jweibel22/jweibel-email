@@ -15,8 +15,11 @@ I have aimed at making the service both highly available and scalable.
 
 ##The solution:
 The service consists of 3 components:
+
 **A front-end:** It has a single web page containing an HTML form where the user can input the necessary information and a send button that will post the content to the web server.
+
 **A web server:** Accepts "send email" requests from the front-end, validates the contents and if valid publishes the email as a message to a RabbitMQ server.
+
 **A worker:** Listens for "send email" messages on RabbitMQ. When a message arrives it will try to dispatch the email using one of the configured email providers.
 
 
@@ -46,13 +49,16 @@ Basically the service performs two activities. Taking requests from the users an
 We have chosen to separate the processing of these two activities into two different services, a web server is taking requests and a worker is dispatching the emails.
 The web server and the worker communicates asynchronously over RabbitMQ.
 The introduction of a message broker between the web server and the worker has many benefits:
+
 **Scalability:**
 It decouples the two activities and enables us to scale them independently.
 Utilizing RabbitMQ simplifies the fail-over logic. By applying the circuit breaker pattern we keep track of the avilability of the providers and try to dispatch the email to an available provider (if any) and if it fails we NACK the message which means that RabbitMQ will redeliver it later.
 Scaling up the dispatching of emails is simply a matter of deploying multiple workers (each configured with their own email provider), they will consume from the same queue and RabbitMQ will take care of the load balancing.
+
 **Availability:**
 The availability of our service isn't dependent on the availability of our email providers, if no email providers are available we can still take requests and queue them on RabbitMQ.
 It improves the elasticity of our service. If we receive more requests than our email providers can handle at peak periods we can still enqueue them and process them later, with no inconvenience for the end user (despite a delay in the dispatching)
+
 **Simplicity:**
 The process of dispatching the emails is not constrained by the synchronous nature of the web request, where a user is waiting for a reply. 
 As long as we dispatch the email eventually (within a reasonable amount of time of course) the user will be satisfied. 
