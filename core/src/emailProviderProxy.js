@@ -37,7 +37,7 @@ EmailProviderProxy.prototype.initialize = function() {
             logger.log({ type: 'warn', msg: 'less than ' + (warnTolerance+1) + ' providers are available'});
         }
 
-        var isAvailable = numberOfAvailable.length > 0;
+        var isAvailable = numberOfAvailable > 0;
 
         if (!self.available && isAvailable) {
             self.eventEmitter.emit('connected');
