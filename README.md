@@ -55,7 +55,7 @@ Scaling up the dispatching of emails is simply a matter of deploying multiple wo
 
 **Availability:**
 The availability of our service isn't dependent on the availability of our email providers, if no email providers are available we can still take requests and queue them on RabbitMQ.
-It improves the elasticity of our service. If we receive more requests than our email providers can handle at peak periods we can still enqueue them and process them later, with no inconvenience for the end user (despite a delay in the dispatching)
+It improves the elasticity of our service. If we receive more requests than our email providers can handle at peak periods we can still enqueue them and process them later, with no inconvenience for the end user (apart from a delay in the dispatching)
 
 **Simplicity:**
 The process of dispatching the emails is not constrained by the synchronous nature of the web request, where a user is waiting for a reply. 
