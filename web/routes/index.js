@@ -1,6 +1,6 @@
 var express = require('express');
 var uuid = require('node-uuid');
-var validation = require('../../validation');
+var validation = require('../validation');
 
 module.exports = function(app, exchange) {
 

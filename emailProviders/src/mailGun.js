@@ -1,12 +1,10 @@
-var HttpEmailDispatcher = require('../dispatcher/httpEmailDispatcher');
+var HttpEmailDispatcher = require('./httpEmailDispatcher');
+var RateLimiter = require('../../core/src/rateLimiter');
+var ResilientEmailProvider = require('../../core/src/resilientEmailProvider');
 
 //Note: My MailGun account is in sandbox mode, which means that only verified receiver and sender email addresses can be used
 module.exports = {
-
-    name: "MailGun",
-    maxRatePerSecond: 10,
-    priority: 1,
-    dispatcher:  new HttpEmailDispatcher({
+    provider: new RateLimiter(10, new ResilientEmailProvider(1, new HttpEmailDispatcher({
         name: "MailGun",
         pingRequest: { //sending an actual test email will give a more precise ping result
             url: 'https://api.mailgun.net/v3/sandbox5a8dfb9b58034c7a8d085da905640309.mailgun.org/messages',
@@ -22,7 +20,7 @@ module.exports = {
                 text: email.body
             }
         }}
-    }),
+    }))),
     validate: function(email) {
         var result = [];
 

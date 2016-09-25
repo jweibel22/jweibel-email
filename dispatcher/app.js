@@ -1,8 +1,8 @@
 var jackrabbit = require('jackrabbit');
 var logger = require('logfmt');
 var config = require('../config')
-var EmailProviderProxy = require('./emailProviderProxy');
-var all = require('../emailProviders/all');
+var EmailProviderProxy = require('../core/src/emailProviderProxy');
+var all = require('../emailProviders/src/all');
 var emailMessageHandlerFactory = require('./emailMessageHandler');
 
 logger.log({ type: 'info', msg: 'worker starting up', service: 'rabbitmq' });
@@ -10,7 +10,7 @@ logger.log({ type: 'info', msg: 'worker starting up', service: 'rabbitmq' });
 var maxNumberOfParallelInFlightEmails = 5; //TODO: make this configurable or deduct it from the properties of the email providers?
 
 function startProcessing(queue) {
-    var dispatcher = new EmailProviderProxy(all.providers);
+    var dispatcher = new EmailProviderProxy(all.providers.map(function(p) { return p.provider; }));
     var messageHandler = emailMessageHandlerFactory(dispatcher);
 
     dispatcher

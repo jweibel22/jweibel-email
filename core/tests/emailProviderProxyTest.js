@@ -7,34 +7,21 @@ chai.use(chaiAsPromised);
 var expect = chai.expect;
 var should = chai.should();
 
-var ServiceErrors = require('../dispatcher/serviceErrors')
-var EmailProviderProxy = require('../dispatcher/emailProviderProxy');
+var ServiceErrors = require('../src/serviceErrors')
+var EmailProviderProxy = require('../src/emailProviderProxy');
+var ResilientEmailDispatcher = require('../src/resilientEmailProvider');
 var EmailDispatcherMock = require('./mocks/emailDispatcherMock');
-
-var availableProvider = {
-    name: "AvailableProvider",
-    maxRatePerSecond: 10,
-    priority: 0,
-    dispatcher: new EmailDispatcherMock(function (fulfill, reject) { fulfill({ elapsedTime: 0}); })
-};
-
-var unavailableProvider = {
-    name: "UnavailableProvider",
-    maxRatePerSecond: 10,
-    priority: 0,
-    dispatcher: new EmailDispatcherMock(function (fulfill, reject) { reject(new ServiceErrors.ServiceUnavailable()); })
-};
-
-var badRequestProvider = {
-    name: "BadRequestProvider",
-    maxRatePerSecond: 10,
-    priority: 0,
-    dispatcher: new EmailDispatcherMock(function (fulfill, reject) { reject(new ServiceErrors.BadRequest()); })
-};
 
 var email = {};
 
 describe('Availability', function() {
+    var availableProvider, unavailableProvider;
+
+    beforeEach(function() {
+        availableProvider = new ResilientEmailDispatcher(0, new EmailDispatcherMock("AvailableProvider", function (fulfill, reject) { fulfill({ elapsedTime: 0}); }));
+        unavailableProvider = new ResilientEmailDispatcher(0, new EmailDispatcherMock("UnavailableProvider", function (fulfill, reject) { reject(new ServiceErrors.ServiceUnavailable()); }));
+    });
+
     it('should succeed when provider is available', function() {
         var uut = new EmailProviderProxy([availableProvider]);
         uut.initialize();
@@ -60,6 +47,15 @@ describe('Availability', function() {
 });
 
 describe('Fail-over', function() {
+
+    var availableProvider, unavailableProvider, badRequestProvider;
+
+    beforeEach(function() {
+        availableProvider = new ResilientEmailDispatcher(0, new EmailDispatcherMock("AvailableProvider", function (fulfill, reject) { fulfill({ elapsedTime: 0}); }));
+        unavailableProvider = new ResilientEmailDispatcher(0, new EmailDispatcherMock("UnavailableProvider", function (fulfill, reject) { reject(new ServiceErrors.ServiceUnavailable()); }));
+        badRequestProvider = new ResilientEmailDispatcher(0, new EmailDispatcherMock("BadRequestProvider",function (fulfill, reject) { reject(new ServiceErrors.BadRequest()); }));
+    });
+
     it('first call fails on fail-over', function() {
         unavailableProvider.priority = 0;
         availableProvider.priority = 1;
@@ -87,18 +83,8 @@ describe('Fail-over', function() {
                             secondCall.should.eventually.be.rejectedWith(ServiceErrors.BadRequest)]);
     });
     it('fail-over on slow provider', function() {
-        var slow = {
-            name: "Slow",
-            maxRatePerSecond: 10,
-            priority: 0,
-            dispatcher: new EmailDispatcherMock(function (fulfill, reject) { fulfill({ elapsedTime: 100000}); })
-        };
-        var fast = {
-            name: "Fast",
-            maxRatePerSecond: 10,
-            priority: 1,
-            dispatcher: new EmailDispatcherMock(function (fulfill, reject) { fulfill({ elapsedTime: 0}); })
-        };
+        var slow = new ResilientEmailDispatcher(0, new EmailDispatcherMock("Slow", function (fulfill, reject) { fulfill({ elapsedTime: 100000}); }));
+        var fast = new ResilientEmailDispatcher(1, new EmailDispatcherMock("Fast",function (fulfill, reject) { fulfill({ elapsedTime: 0}); }));
         var slowDispatch = sinon.spy(slow.dispatcher, 'send');
         var fastDispatch = sinon.spy(fast.dispatcher, 'send');
         var uut = new EmailProviderProxy([slow, fast]);
@@ -113,27 +99,10 @@ describe('Fail-over', function() {
     });
 });
 
-describe('Testing validation', function() {
-
-    //empty email
-    //missing email adresses
-    //invalid email addresses
-});
-
 describe('Prioritization', function() {
     it('providers are prioritized', function() {
-        var high = {
-            name: "HighPriority",
-            maxRatePerSecond: 10,
-            priority: 0,
-            dispatcher: new EmailDispatcherMock(function (fulfill, reject) { fulfill({ elapsedTime: 0}); })
-        };
-        var low = {
-            name: "LowPriority",
-            maxRatePerSecond: 10,
-            priority: 1,
-            dispatcher: new EmailDispatcherMock(function (fulfill, reject) { fulfill({ elapsedTime: 0}); })
-        };
+        var high = new ResilientEmailDispatcher(0, new EmailDispatcherMock("HighPriority",function (fulfill, reject) { fulfill({ elapsedTime: 0}); }));
+        var low = new ResilientEmailDispatcher(1, new EmailDispatcherMock("LowPriority",function (fulfill, reject) { fulfill({ elapsedTime: 0}); }));
         var highDispatch = sinon.spy(high.dispatcher, 'send');
         var lowDispatch = sinon.spy(low.dispatcher, 'send');
         var uut = new EmailProviderProxy([low, high]);
@@ -146,35 +115,5 @@ describe('Prioritization', function() {
     });
 });
 
-describe('Rate limit', function() {
-    it('rate limitting works', function() {
-
-        var numIterations = 5;
-
-        this.timeout((numIterations+1)*1000);
-
-        var provider = {
-            name: "Provider",
-            maxRatePerSecond: 1,
-            priority: 0,
-            dispatcher: new EmailDispatcherMock(function (fulfill, reject) { fulfill({ elapsedTime: 0}); })
-        };
-
-        var uut = new EmailProviderProxy([provider]);
-        uut.initialize();
-
-        var start = process.hrtime();
-
-        var p = uut.send(email);
-        for (var i=0; i<numIterations-1; i++) {
-            p = p.then(function() { return uut.send(email); });
-        }
-        p = p.then(function() {
-            var secondsElapsed = process.hrtime(start)[0];
-            return secondsElapsed; });
-
-        return expect(p).to.eventually.be.above(numIterations-2);
-    });
-});
 
 

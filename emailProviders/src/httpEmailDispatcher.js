@@ -1,8 +1,9 @@
 var Promise = require('promise');
 var request = require('request');
-var ServiceErrors = require('./serviceErrors')
+var ServiceErrors = require('./../../core/src/serviceErrors')
 var logger = require('logfmt');
 
+//dispatches emails over HTTP. The send method will either fulfill its promise or reject it with ServiceUnavailable or BadRequest
 function HttpEmailDispatcher(provider) {
     this.provider = provider;
 }
@@ -87,4 +88,4 @@ HttpEmailDispatcher.prototype.send = function (email) {
     });
 };
 
-module.exports = HttpEmailDispatcher;
+module.exports = HttpEmailDispatcher

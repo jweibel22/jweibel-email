@@ -1,7 +1,7 @@
 var chai = require('chai');
 var chaiAsPromised = require("chai-as-promised");
-var sendGrid = require('./sendGrid');
-var ServiceErrors = require('../dispatcher/serviceErrors')
+var sendGrid = require('../src/sendGrid');
+var ServiceErrors = require('../../core/src/serviceErrors')
 
 chai.use(chaiAsPromised);
 var expect = chai.expect;
@@ -16,19 +16,19 @@ var email = {
 describe('Testing Send', function() {
     it('should succeed', function () {
         //TODO: fetch email from inbox and assert on content?
-        return expect(sendGrid.dispatcher.send(email)).to.eventually.be.fulfilled;
+        return expect(sendGrid.provider.send(email)).to.eventually.be.fulfilled;
     });
     it('when unauthorized service is unavailable', function () {
-        var decorated = sendGrid.dispatcher.provider.sendEmailRequest;
-        sendGrid.dispatcher.provider.sendEmailRequest = function(email) {
+        var decorated = sendGrid.provider.emailProvider.dispatcher.provider.sendEmailRequest;
+        sendGrid.provider.emailProvider.dispatcher.provider.sendEmailRequest = function(email) {
             var result = decorated(email);
             result.headers = {'Authorization': "Bearer XXXX"};
             return result;
         };
-        return expect(sendGrid.dispatcher.send(email)).to.eventually.be.rejectedWith(ServiceErrors.ServiceUnavailable);
+        return expect(sendGrid.provider.send(email)).to.eventually.be.rejectedWith(ServiceErrors.ServiceUnavailable);
     });
     it('empty subject gives BadRequest', function () {
         email.subject = "";
-        return expect(sendGrid.dispatcher.send(email)).to.eventually.be.rejectedWith(ServiceErrors.BadRequest);
+        return expect(sendGrid.provider.send(email)).to.eventually.be.rejectedWith(ServiceErrors.BadRequest);
     });
 });

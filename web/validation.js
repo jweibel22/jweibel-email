@@ -1,4 +1,4 @@
-var all = require('./emailProviders/all');
+var all = require('../emailProviders/src/all');
 
 function validateEmailAddress(address)
 {

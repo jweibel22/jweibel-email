@@ -46,26 +46,30 @@
       <input type="email"
              class="form-control"
              placeholder="From"
-             ng-model="email.from"></input>
+             ng-model="email.from"
+             ng-required="true"></input>
    </div>
    <div class="form-group">
       <input type="email"
              class="form-control"
              placeholder="To"
-             ng-model="email.to"></input>
+             ng-model="email.to"
+             ng-required="true"></input>
    </div>
    <div class="form-group">
       <input type="text"
              class="form-control"
              placeholder="Subject"
-             ng-model="email.subject"></input>
+             ng-model="email.subject"
+             ng-required="true"></input>
    </div>
 
    <div class="form-group">
     <textarea style="height:100px"
               class="form-control"
               placeholder="Body"
-              ng-model="email.body"></textarea>
+              ng-model="email.body"
+              ng-required="true"></textarea>
    </div>
    <button type="submit" class="btn btn-primary">Send</button>
    </form>
